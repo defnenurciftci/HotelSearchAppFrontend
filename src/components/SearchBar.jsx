@@ -3,7 +3,6 @@ import { IoIosSearch } from "react-icons/io";
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { MapPin, Hotel } from 'lucide-react';
-import axiosClient from '../service/axiosClient';
 
 const SearchBar = () => {
   const navigate = useNavigate();
@@ -88,7 +87,7 @@ const SearchBar = () => {
     setDestinationQuery(value);
     // Eğer input boşaltılırsa veya kullanıcı yeni bir şey yazmaya başlarsa seçili lokasyonu sıfırla
     if (selectedLocation && selectedLocation.name !== value) {
-        setSelectedLocation(null);
+      setSelectedLocation(null);
     }
     setShowSuggestions(true); // Inputa yazmaya başlayınca önerileri göster
   };
@@ -109,8 +108,8 @@ const SearchBar = () => {
   const handleSearch = () => {
     // Arama yapmak için `selectedLocation` kullanılıyor
     if (!selectedLocation) {
-        alert("Lütfen bir destinasyon seçiniz.");
-        return;
+      alert("Lütfen bir destinasyon seçiniz.");
+      return;
     }
 
     const params = new URLSearchParams();

@@ -13,23 +13,24 @@ export const api = {
   }),
 
   // Düzeltildi: Eğik çizgi eklendi
-getNationalities: async () => {
-  const res = await fetch(`${API_BASE_URL}api/v1/lookups/nationalities`);
-  const contentType = res.headers.get("content-type");
+  getNationalities: async () => {
+    console.log("getNationalities API çağrılıyor...");
+    const res = await fetch(`${API_BASE_URL}api/v1/lookups/nationalities`);
+    const contentType = res.headers.get("content-type");
+    console.log("Yanıt durumu:", res.status);
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
 
-  if (!res.ok) {
-    throw new Error(`HTTP error! status: ${res.status}`);
-  }
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await res.text();
+      console.warn("❗ Beklenmeyen içerik tipi:", contentType);
+      console.warn("❗ Dönen içerik:", text.slice(0, 200)); // sadece ilk 200 karakteri yaz
+      throw new Error("Beklenmeyen yanıt tipi (HTML olabilir)");
+    }
 
-  if (!contentType || !contentType.includes("application/json")) {
-    const text = await res.text();
-    console.warn("❗ Beklenmeyen içerik tipi:", contentType);
-    console.warn("❗ Dönen içerik:", text.slice(0, 200)); // sadece ilk 200 karakteri yaz
-    throw new Error("Beklenmeyen yanıt tipi (HTML olabilir)");
-  }
-
-  return res.json();
-},
+    return res.json();
+  },
   // Düzeltildi: Eğik çizgi eklendi
   getCurrencies: () => fetch(`${API_BASE_URL}api/v1/lookups/currencies`).then(res => {
     if (!res.ok) {
