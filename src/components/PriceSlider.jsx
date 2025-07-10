@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import ReactSlider from "react-slider";
+import Slider from 'rc-slider';
 
 const priceDistribution = [
   5, 10, 15, 10, 8, 5, 3, 2, 6, 12, 9, 6, 4, 5, 6, 7, 5, 3, 2, 1, 1, 1, 1, 2, 2
@@ -53,7 +53,7 @@ const PriceSlider = ({ minPrice, maxPrice, setMinPrice, setMaxPrice }) => {
 
         {/* Slider */}
         <div className="absolute inset-0 z-10 px-1 flex items-center">
-          <ReactSlider
+          <Slider
             className="w-full h-2 bg-transparent"
             thumbClassName="h-5 w-5 rounded-full bg-[#adadf6] cursor-pointer shadow-lg border-2 border-white"
             trackClassName="bg-[#adadf6] h-2"

@@ -6,6 +6,7 @@ import "slick-carousel/slick/slick-theme.css"
 import './App.css'
 import './index.css'
 import LoginPage from './pages/LoginPage'
+import SearchResults from './pages/SearchResultsPage'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/search-results" element={<SearchResults />} />
           </Routes>
         </Router>
       </PageContainer>

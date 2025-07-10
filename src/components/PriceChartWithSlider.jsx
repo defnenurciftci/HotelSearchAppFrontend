@@ -1,6 +1,6 @@
 import React from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import ReactSlider from "react-slider";
+import Slider from 'rc-slider';
 
 const PriceChartWithSlider = ({
   priceData = [],
@@ -18,7 +18,7 @@ const PriceChartWithSlider = ({
     <div className="bg-white border border-[#d4c1ec] p-4 rounded-xl w-full shadow-md space-y-4">
       <p className="text-[#535691] font-semibold mb-2">Gecelik Fiyat Dağılımı</p>
 
-      
+
       <div className="w-full">
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={priceData}>
@@ -30,8 +30,8 @@ const PriceChartWithSlider = ({
         </ResponsiveContainer>
       </div>
 
- 
-      <ReactSlider
+
+      <Slider
         className="w-full h-2 bg-[#eee] rounded"
         thumbClassName="h-5 w-5 rounded-full bg-[#adadf6] cursor-pointer shadow"
         trackClassName="bg-[#d4c1ec] h-2"
@@ -43,7 +43,7 @@ const PriceChartWithSlider = ({
         pearling
       />
 
-  
+
       <div className="flex justify-between items-center mt-2 gap-2">
         <input
           type="number"
