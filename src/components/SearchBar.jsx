@@ -3,6 +3,7 @@ import { IoIosSearch } from "react-icons/io";
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { MapPin, Hotel } from 'lucide-react';
+import axiosClient from '../service/axiosClient';
 
 const SearchBar = () => {
   const navigate = useNavigate();
@@ -144,6 +145,51 @@ const SearchBar = () => {
     }
   };
 
+  const handleDestinationChange = async (e) => {
+    const value = e.target.value;
+    setDestination(value);
+
+    if (value.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      const response = await axiosClient.get("/api/v1/locations/autocomplete", {
+        query: value,
+      });
+
+      // Backend'den gelen öneri listesi response.data.suggestions olarak varsayılmıştır
+      setSuggestions(response.data.suggestions || []);
+      setShowSuggestions(true);
+    } catch (error) {
+      console.error("Autocomplete hatası:", error);
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        // Örnek olarak boş query ile çağırılıyor. Backend buna göre minPrice, maxPrice vs. dönüyorsa ayarla.
+        const response = await axiosClient.post("/api/v1/locations/autocomplete", {
+          query: "a",
+        });
+
+        setFilterOptions(response.data);
+
+        if (response.data.minPrice) setMinPrice(response.data.minPrice);
+        if (response.data.maxPrice) setMaxPrice(response.data.maxPrice);
+      } catch (error) {
+        console.error("Filtre verisi alınamadı:", error);
+      }
+    };
+
+    fetchFilterOptions();
+  }, []);
+
   // Dropdown'lar ve autocomplete için dışarı tıklama olayını yöneten useEffect
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -152,6 +198,9 @@ const SearchBar = () => {
       }
       if (destinationInputRef.current && !destinationInputRef.current.contains(event.target)) {
         setShowSuggestions(false); // Autocomplete önerileri için dışarı tıklama
+      }
+      if (destinationRef.current && !destinationRef.current.contains(event.target)) {
+        setShowSuggestions(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -267,6 +316,7 @@ const SearchBar = () => {
         )}
       </div>
 
+      {/* SEARCH BUTTON */}
       <button
         onClick={handleSearch}
         className="flex items-center gap-2 bg-[#adadf6] hover:bg-[#8986c8] text-white px-6 py-3 rounded-full font-semibold shadow-sm hover:shadow-md transition"
