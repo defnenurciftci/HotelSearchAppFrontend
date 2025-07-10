@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import ReactSlider from "react-slider";
+import ReactSlider from "keen-slider";
 
 const priceDistribution = [
   5, 10, 15, 10, 8, 5, 3, 2, 6, 12, 9, 6, 4, 5, 6, 7, 5, 3, 2, 1, 1, 1, 1, 2, 2
