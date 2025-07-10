@@ -6,8 +6,6 @@ import axiosClient from '../service/axiosClient';
 
 const SearchBar = () => {
   const navigate = useNavigate();
-
-  const [filterOptions, setFilterOptions] = useState(null);
   const [destination, setDestination] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -16,7 +14,6 @@ const SearchBar = () => {
   const [checkOut, setCheckOut] = useState('');
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(25000);
-  const [currency, setCurrency] = useState('');
   const [race, setRace] = useState('');
   const [rooms, setRooms] = useState([{ adults: 1, children: 0 }]);
   const [showRoomsDropdown, setShowRoomsDropdown] = useState(false);
@@ -42,7 +39,6 @@ const SearchBar = () => {
     params.set("checkout", checkOut);
     params.set("minPrice", minPrice);
     params.set("maxPrice", maxPrice);
-    params.set("currency", currency);
     params.set("race", race);
     params.set("rooms", JSON.stringify(rooms));
     navigate(`/search-results?${params.toString()}`);
@@ -129,8 +125,6 @@ const SearchBar = () => {
     };
   }, []);
 
-  if (!filterOptions) return <div className="p-6 text-[#8986c8]">Yükleniyor...</div>;
-
   return (
     <div className="w-full max-w-7xl mx-auto bg-[#fef9ff] border border-[#d4c1ec] shadow rounded-2xl p-6 flex flex-wrap gap-4 items-end overflow-visible relative z-0">
 
@@ -171,6 +165,7 @@ const SearchBar = () => {
         onChange={(e) => setCheckIn(e.target.value)}
         className="flex-1 px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
       />
+
       <input
         type="date"
         value={checkOut}
@@ -178,17 +173,17 @@ const SearchBar = () => {
         className="flex-1 px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
       />
 
-      {/* RACE */}
       <div className="flex-1 min-w-[200px] relative z-50">
+        <label htmlFor="race" className="sr-only">Irk Seçiniz</label>
         <select
+          id="race"
           value={race}
           onChange={(e) => setRace(e.target.value)}
           className="w-full appearance-none px-4 py-3 rounded-lg border border-[#d4c1ec] focus:outline-none focus:ring-2 focus:ring-[#adadf6] bg-white text-[#8986c8] z-10"
         >
           <option value="">Irk Seçiniz</option>
-          {filterOptions.races.map((item) => (
-            <option key={item} value={item}>{item}</option>
-          ))}
+          <option value="Turk">Türk</option>
+          <option value="Diger">Diğer</option>
         </select>
         <div className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-[#8986c8]">▼</div>
       </div>
@@ -223,8 +218,6 @@ const SearchBar = () => {
               maxPrice={maxPrice}
               setMinPrice={setMinPrice}
               setMaxPrice={setMaxPrice}
-              minLimit={filterOptions.minPrice}
-              maxLimit={filterOptions.maxPrice}
             />
             <button
               onClick={() => setShowPriceSlider(false)}
@@ -250,6 +243,7 @@ const SearchBar = () => {
             {rooms.map((room, idx) => (
               <div key={idx} className="mb-4 border-b pb-3">
                 <p className="font-semibold text-[#535691] mb-2">{idx + 1}. Oda</p>
+
                 <div className="flex justify-between items-center mb-2">
                   <span>Yetişkin</span>
                   <div className="flex items-center gap-2">
@@ -258,6 +252,7 @@ const SearchBar = () => {
                     <button onClick={() => handleRoomChange(idx, "adults", 1)} className="px-2 py-1 border rounded">+</button>
                   </div>
                 </div>
+
                 <div className="flex justify-between items-center mb-2">
                   <span>Çocuk</span>
                   <div className="flex items-center gap-2">
@@ -266,6 +261,7 @@ const SearchBar = () => {
                     <button onClick={() => handleRoomChange(idx, "children", 1)} className="px-2 py-1 border rounded">+</button>
                   </div>
                 </div>
+
                 {rooms.length > 1 && (
                   <button onClick={() => removeRoom(idx)} className="text-red-500 text-sm mt-1">
                     Odayı Sil
@@ -295,7 +291,7 @@ const SearchBar = () => {
         Ara
       </button>
     </div>
-  );
-};
+  )
+}
 
-export default SearchBar;
+export default SearchBar

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"
 import ReactSlider from "keen-slider";
 
 const priceDistribution = [
