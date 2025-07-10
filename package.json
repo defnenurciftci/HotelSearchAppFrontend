@@ -12,8 +12,10 @@
   "dependencies": {
     "@babel/runtime": "^7.27.6",
     "@tailwindcss/vite": "^4.1.11",
+    "axios": "^1.10.0",
     "framer-motion": "^12.23.0",
     "keen-slider": "^6.8.6",
+
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",

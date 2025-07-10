@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react"
 import ReactSlider from "keen-slider";
 
 const priceDistribution = [
@@ -53,7 +53,7 @@ const PriceSlider = ({ minPrice, maxPrice, setMinPrice, setMaxPrice }) => {
 
         {/* Slider */}
         <div className="absolute inset-0 z-10 px-1 flex items-center">
-          <ReactSlider
+          <Slider
             className="w-full h-2 bg-transparent"
             thumbClassName="h-5 w-5 rounded-full bg-[#adadf6] cursor-pointer shadow-lg border-2 border-white"
             trackClassName="bg-[#adadf6] h-2"

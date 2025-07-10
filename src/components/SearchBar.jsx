@@ -5,14 +5,11 @@ import PriceSlider from './PriceSlider';
 
 const SearchBar = () => {
   const navigate = useNavigate();
-
-  const [filterOptions, setFilterOptions] = useState(null);
   const [destination, setDestination] = useState("");
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(25000);
-  const [currency, setCurrency] = useState('');
   const [race, setRace] = useState('');
   const [rooms, setRooms] = useState([{ adults: 1, children: 0 }]);
   const [showRoomsDropdown, setShowRoomsDropdown] = useState(false);
@@ -37,7 +34,6 @@ const SearchBar = () => {
     params.set("checkout", checkOut);
     params.set("minPrice", minPrice);
     params.set("maxPrice", maxPrice);
-    params.set("currency", currency);
     params.set("race", race);
     params.set("rooms", JSON.stringify(rooms));
     navigate(`/search-results?${params.toString()}`);
@@ -61,36 +57,6 @@ const SearchBar = () => {
   };
 
   useEffect(() => {
-    // Dummy veri ataması (API çağrısı yapılmaz)
-    const dummyFilterOptions = {
-      destinations: ["Antalya", "İstanbul", "İzmir", "Kapadokya"],
-      races: ["Türk", "Yabancı", "Avrupalı", "Asyalı"],
-      currencyOptions: ["₺", "$", "€", "£"],
-      minPrice: 500,
-      maxPrice: 20000
-    };
-    setFilterOptions(dummyFilterOptions);
-    setMinPrice(dummyFilterOptions.minPrice);
-    setMaxPrice(dummyFilterOptions.maxPrice);
-
-    /*
-    // API kapalı, bu kısım devre dışı bırakıldı
-    const fetchFilterOptions = async () => {
-      try {
-        const response = await fetch('https://api.siten.com/search-options'); 
-        const data = await response.json();
-        setFilterOptions(data);
-        if (data.minPrice) setMinPrice(data.minPrice);
-        if (data.maxPrice) setMaxPrice(data.maxPrice);
-      } catch (error) {
-        console.error("Filtre verisi alınamadı:", error);
-      }
-    };
-    fetchFilterOptions();
-    */
-  }, []);
-
-  useEffect(() => {
     const handleClickOutside = (event) => {
       if (roomsRef.current && !roomsRef.current.contains(event.target)) {
         setShowRoomsDropdown(false);
@@ -106,30 +72,24 @@ const SearchBar = () => {
     };
   }, []);
 
-  if (!filterOptions) return <div className="p-6 text-[#8986c8]">Yükleniyor...</div>;
-
   return (
     <div className="w-full max-w-7xl mx-auto bg-[#fef9ff] border border-[#d4c1ec] shadow rounded-2xl p-6 flex flex-wrap gap-4 items-end overflow-visible relative z-0">
 
-      {/* DESTİNASYON */}
-      <select
+      <input
+        type="text"
+        placeholder="Nereye gidiyorsunuz?"
         value={destination}
         onChange={(e) => setDestination(e.target.value)}
-        className="flex-1 px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
-      >
-        <option value="">Nereye gidiyorsunuz?</option>
-        {filterOptions.destinations.map((dest) => (
-          <option key={dest} value={dest}>{dest}</option>
-        ))}
-      </select>
+        className="flex-1 px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none placeholder-[#8986c8]"
+      />
 
-      {/* CHECKIN / CHECKOUT */}
       <input
         type="date"
         value={checkIn}
         onChange={(e) => setCheckIn(e.target.value)}
         className="flex-1 px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
       />
+
       <input
         type="date"
         value={checkOut}
@@ -137,36 +97,22 @@ const SearchBar = () => {
         className="flex-1 px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
       />
 
-      {/* RACE */}
       <div className="flex-1 min-w-[200px] relative z-50">
+        <label htmlFor="race" className="sr-only">Irk Seçiniz</label>
         <select
+          id="race"
           value={race}
           onChange={(e) => setRace(e.target.value)}
           className="w-full appearance-none px-4 py-3 rounded-lg border border-[#d4c1ec] focus:outline-none focus:ring-2 focus:ring-[#adadf6] bg-white text-[#8986c8] z-10"
         >
           <option value="">Irk Seçiniz</option>
-          {filterOptions.races.map((item) => (
-            <option key={item} value={item}>{item}</option>
-          ))}
+          <option value="Turk">Türk</option>
+          <option value="Diger">Diğer</option>
         </select>
         <div className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-[#8986c8]">▼</div>
       </div>
 
-      {/* CURRENCY */}
-      <div className="flex-1 min-w-[150px]">
-        <select
-          value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
-          className="w-full appearance-none px-4 py-3 rounded-lg border border-[#d4c1ec] focus:outline-none focus:ring-2 focus:ring-[#adadf6] bg-white text-[#8986c8]"
-        >
-          <option value="">Para Birimi</option>
-          {filterOptions.currencyOptions.map((cur) => (
-            <option key={cur} value={cur}>{cur}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* FİYAT SLIDER */}
+      {/* Fiyat Aralığı */}
       <div className="w-full md:w-[400px] relative z-30" ref={priceRef}>
         <button
           onClick={() => setShowPriceSlider(!showPriceSlider)}
@@ -182,8 +128,6 @@ const SearchBar = () => {
               maxPrice={maxPrice}
               setMinPrice={setMinPrice}
               setMaxPrice={setMaxPrice}
-              minLimit={filterOptions.minPrice}
-              maxLimit={filterOptions.maxPrice}
             />
             <button
               onClick={() => setShowPriceSlider(false)}
@@ -195,7 +139,7 @@ const SearchBar = () => {
         )}
       </div>
 
-      {/* ODA SEÇİMİ */}
+      {/* Oda Seçimi */}
       <div className="relative w-full md:w-64 z-40" ref={roomsRef}>
         <button
           onClick={() => setShowRoomsDropdown(!showRoomsDropdown)}
@@ -209,6 +153,7 @@ const SearchBar = () => {
             {rooms.map((room, idx) => (
               <div key={idx} className="mb-4 border-b pb-3">
                 <p className="font-semibold text-[#535691] mb-2">{idx + 1}. Oda</p>
+
                 <div className="flex justify-between items-center mb-2">
                   <span>Yetişkin</span>
                   <div className="flex items-center gap-2">
@@ -217,6 +162,7 @@ const SearchBar = () => {
                     <button onClick={() => handleRoomChange(idx, "adults", 1)} className="px-2 py-1 border rounded">+</button>
                   </div>
                 </div>
+
                 <div className="flex justify-between items-center mb-2">
                   <span>Çocuk</span>
                   <div className="flex items-center gap-2">
@@ -225,6 +171,7 @@ const SearchBar = () => {
                     <button onClick={() => handleRoomChange(idx, "children", 1)} className="px-2 py-1 border rounded">+</button>
                   </div>
                 </div>
+
                 {rooms.length > 1 && (
                   <button onClick={() => removeRoom(idx)} className="text-red-500 text-sm mt-1">
                     Odayı Sil
@@ -245,7 +192,6 @@ const SearchBar = () => {
         )}
       </div>
 
-      {/* ARA BUTONU */}
       <button
         onClick={handleSearch}
         className="flex items-center gap-2 bg-[#adadf6] hover:bg-[#8986c8] text-white px-6 py-3 rounded-full font-semibold shadow-sm hover:shadow-md transition"
@@ -254,7 +200,7 @@ const SearchBar = () => {
         Ara
       </button>
     </div>
-  );
-};
+  )
+}
 
-export default SearchBar;
+export default SearchBar
