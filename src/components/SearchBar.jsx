@@ -2,12 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { IoIosSearch } from "react-icons/io";
 import { useNavigate } from 'react-router-dom';
 import PriceSlider from './PriceSlider';
+import axiosClient from '../service/axiosClient';
 
 const SearchBar = () => {
   const navigate = useNavigate();
 
   const [filterOptions, setFilterOptions] = useState(null);
   const [destination, setDestination] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [minPrice, setMinPrice] = useState(0);
@@ -20,6 +24,7 @@ const SearchBar = () => {
 
   const roomsRef = useRef(null);
   const priceRef = useRef(null);
+  const destinationRef = useRef(null);
 
   const totalGuests = rooms.reduce(
     (acc, room) => {
@@ -60,34 +65,49 @@ const SearchBar = () => {
     }
   };
 
-  useEffect(() => {
-    // Dummy veri ataması (API çağrısı yapılmaz)
-    const dummyFilterOptions = {
-      destinations: ["Antalya", "İstanbul", "İzmir", "Kapadokya"],
-      races: ["Türk", "Yabancı", "Avrupalı", "Asyalı"],
-      currencyOptions: ["₺", "$", "€", "£"],
-      minPrice: 500,
-      maxPrice: 20000
-    };
-    setFilterOptions(dummyFilterOptions);
-    setMinPrice(dummyFilterOptions.minPrice);
-    setMaxPrice(dummyFilterOptions.maxPrice);
+  const handleDestinationChange = async (e) => {
+    const value = e.target.value;
+    setDestination(value);
 
-    /*
-    // API kapalı, bu kısım devre dışı bırakıldı
+    if (value.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      const response = await axiosClient.get("/api/v1/locations/autocomplete", {
+        query: value,
+      });
+
+      // Backend'den gelen öneri listesi response.data.suggestions olarak varsayılmıştır
+      setSuggestions(response.data.suggestions || []);
+      setShowSuggestions(true);
+    } catch (error) {
+      console.error("Autocomplete hatası:", error);
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
-        const response = await fetch('https://api.siten.com/search-options'); 
-        const data = await response.json();
-        setFilterOptions(data);
-        if (data.minPrice) setMinPrice(data.minPrice);
-        if (data.maxPrice) setMaxPrice(data.maxPrice);
+        // Örnek olarak boş query ile çağırılıyor. Backend buna göre minPrice, maxPrice vs. dönüyorsa ayarla.
+        const response = await axiosClient.post("/api/v1/locations/autocomplete", {
+          query: "a",
+        });
+
+        setFilterOptions(response.data);
+
+        if (response.data.minPrice) setMinPrice(response.data.minPrice);
+        if (response.data.maxPrice) setMaxPrice(response.data.maxPrice);
       } catch (error) {
         console.error("Filtre verisi alınamadı:", error);
       }
     };
+
     fetchFilterOptions();
-    */
   }, []);
 
   useEffect(() => {
@@ -97,6 +117,9 @@ const SearchBar = () => {
       }
       if (priceRef.current && !priceRef.current.contains(event.target)) {
         setShowPriceSlider(false);
+      }
+      if (destinationRef.current && !destinationRef.current.contains(event.target)) {
+        setShowSuggestions(false);
       }
     };
 
@@ -111,19 +134,37 @@ const SearchBar = () => {
   return (
     <div className="w-full max-w-7xl mx-auto bg-[#fef9ff] border border-[#d4c1ec] shadow rounded-2xl p-6 flex flex-wrap gap-4 items-end overflow-visible relative z-0">
 
-      {/* DESTİNASYON */}
-      <select
-        value={destination}
-        onChange={(e) => setDestination(e.target.value)}
-        className="flex-1 px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
-      >
-        <option value="">Nereye gidiyorsunuz?</option>
-        {filterOptions.destinations.map((dest) => (
-          <option key={dest} value={dest}>{dest}</option>
-        ))}
-      </select>
+      {/* DESTINATION AUTOCOMPLETE */}
+      <div className="relative w-full md:flex-1" ref={destinationRef}>
+        <input
+          type="text"
+          value={destination}
+          onChange={handleDestinationChange}
+          onFocus={() => destination.length > 1 && setShowSuggestions(true)}
+          placeholder="Nereye gidiyorsunuz?"
+          className="w-full px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
+          autoComplete="off"
+        />
 
-      {/* CHECKIN / CHECKOUT */}
+        {showSuggestions && suggestions.length > 0 && (
+          <ul className="absolute z-50 mt-1 w-full bg-white border border-[#d4c1ec] rounded-md shadow max-h-60 overflow-y-auto">
+            {suggestions.map((item, index) => (
+              <li
+                key={index}
+                onClick={() => {
+                  setDestination(item);
+                  setShowSuggestions(false);
+                }}
+                className="px-4 py-2 hover:bg-[#f2dfd7] cursor-pointer text-[#535691]"
+              >
+                {item}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* CHECK-IN / CHECK-OUT */}
       <input
         type="date"
         value={checkIn}
@@ -166,7 +207,7 @@ const SearchBar = () => {
         </select>
       </div>
 
-      {/* FİYAT SLIDER */}
+      {/* PRICE SLIDER */}
       <div className="w-full md:w-[400px] relative z-30" ref={priceRef}>
         <button
           onClick={() => setShowPriceSlider(!showPriceSlider)}
@@ -195,7 +236,7 @@ const SearchBar = () => {
         )}
       </div>
 
-      {/* ODA SEÇİMİ */}
+      {/* ROOMS */}
       <div className="relative w-full md:w-64 z-40" ref={roomsRef}>
         <button
           onClick={() => setShowRoomsDropdown(!showRoomsDropdown)}
@@ -245,7 +286,7 @@ const SearchBar = () => {
         )}
       </div>
 
-      {/* ARA BUTONU */}
+      {/* SEARCH BUTTON */}
       <button
         onClick={handleSearch}
         className="flex items-center gap-2 bg-[#adadf6] hover:bg-[#8986c8] text-white px-6 py-3 rounded-full font-semibold shadow-sm hover:shadow-md transition"
