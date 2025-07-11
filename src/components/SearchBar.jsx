@@ -23,6 +23,11 @@ const SearchBar = () => {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  const [filterOptions, setFilterOptions] = useState(null);
+  const [minPrice, setMinPrice] = useState(null);
+  const [maxPrice, setMaxPrice] = useState(null);
+
+
   // Toplam misafir sayısını hesaplama
   const totalGuests = rooms.reduce((acc, room) => {
     acc.adults += room.adults;
@@ -32,7 +37,7 @@ const SearchBar = () => {
 
   // Autocomplete API'sine istek atan fonksiyon (Debounce ile)
   const fetchSuggestions = useCallback(async (query) => {
-    if (query.length < 2) {
+    if (query.length <= 2) {
       setSuggestions([]);
       setLoadingSuggestions(false);
       setShowSuggestions(false);
@@ -48,7 +53,7 @@ const SearchBar = () => {
       }
       setShowSuggestions(true);
     } catch (error) {
-      console.error("Autocomplete önerileri alınamadı:", error);
+      console.error("Autocomplete error 57:", error);
       setSuggestions([]);
       setShowSuggestions(false);
     } finally {
@@ -60,9 +65,12 @@ const SearchBar = () => {
   useEffect(() => {
     const fetchNationalities = async () => {
       try {
+        console.log("data is ok")
         const data = await api.getNationalities();
         if (data && Array.isArray(data.items)) {
+          console.log("first if is ok")
           setNationalities(data.items);
+          console.log("setNationalities has run")
         }
       } catch (error) {
         console.error("Milliyetler alınamadı:", error);
@@ -155,12 +163,12 @@ const SearchBar = () => {
     }
 
     try {
-      const response = await axiosClient.get("/api/v1/locations/autocomplete", {
+      const response = await api.get("/api/v1/locations/autocomplete", {
         query: value,
       });
 
       // Backend'den gelen öneri listesi response.data.suggestions olarak varsayılmıştır
-      setSuggestions(response.data.suggestions || []);
+      setSuggestions(response.suggestions || []);
       setShowSuggestions(true);
     } catch (error) {
       console.error("Autocomplete hatası:", error);
@@ -168,26 +176,6 @@ const SearchBar = () => {
       setShowSuggestions(false);
     }
   };
-
-  useEffect(() => {
-    const fetchFilterOptions = async () => {
-      try {
-        // Örnek olarak boş query ile çağırılıyor. Backend buna göre minPrice, maxPrice vs. dönüyorsa ayarla.
-        const response = await axiosClient.post("/api/v1/locations/autocomplete", {
-          query: "a",
-        });
-
-        setFilterOptions(response.data);
-
-        if (response.data.minPrice) setMinPrice(response.data.minPrice);
-        if (response.data.maxPrice) setMaxPrice(response.data.maxPrice);
-      } catch (error) {
-        console.error("Filtre verisi alınamadı:", error);
-      }
-    };
-
-    fetchFilterOptions();
-  }, []);
 
   // Dropdown'lar ve autocomplete için dışarı tıklama olayını yöneten useEffect
   useEffect(() => {
@@ -198,7 +186,7 @@ const SearchBar = () => {
       if (destinationInputRef.current && !destinationInputRef.current.contains(event.target)) {
         setShowSuggestions(false); // Autocomplete önerileri için dışarı tıklama
       }
-      if (destinationRef.current && !destinationRef.current.contains(event.target)) {
+      if (destinationInputRef.current && !destinationInputRef.current.contains(event.target)) {
         setShowSuggestions(false);
       }
     };
