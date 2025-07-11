@@ -28,6 +28,7 @@ const SearchBar = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showRoomsDropdown, setShowRoomsDropdown] = useState(false);
 
+
   const totalGuests = rooms.reduce((acc, room) => {
     acc.adults += room.adults;
     acc.children += room.children;
@@ -36,7 +37,7 @@ const SearchBar = () => {
 
   // Varış yeri önerilerini getirme fonksiyonu
   const fetchSuggestions = useCallback(async (query) => {
-    if (query.length < 2) {
+    if (query.length <= 2) {
       setSuggestions([]);
       setLoadingSuggestions(false);
       setShowSuggestions(false);
@@ -52,7 +53,7 @@ const SearchBar = () => {
       }
       setShowSuggestions(true);
     } catch (error) {
-      console.error("Autocomplete önerileri alınamadı:", error);
+      console.error("Autocomplete error 57:", error);
       setSuggestions([]);
       setShowSuggestions(false);
     } finally {
@@ -64,8 +65,10 @@ const SearchBar = () => {
   useEffect(() => {
     const fetchNationalities = async () => {
       try {
+        console.log("data is ok")
         const data = await api.getNationalities();
         if (data && Array.isArray(data.items)) {
+          console.log("first if is ok")
           setNationalities(data.items);
           setFilteredNationalities(data.items);
         }
