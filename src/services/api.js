@@ -1,79 +1,101 @@
-const API_BASE_URL = 'https://f0da8c1664cc.ngrok-free.app/'; // Sonundaki eğik çizgiyi kaldırdım, böylece her bir metodda manuel olarak ekleyebiliriz veya otomatik eklenen durumlarda çakışmayı önleriz.
+const API_BASE_URL = 'https://3f44e2b20dd6.ngrok-free.app/'; 
 
 export const api = {
+  // getArrivalAutocomplete fonksiyonu: Varış yeri otomatik tamamlama için POST isteği gönderir.
+  // Bu fonksiyon zaten doğru JSON dönüşü yapıyor ve sunucunuzdan beklenen davranışı alıyor.
   getArrivalAutocomplete: (query) => fetch(`${API_BASE_URL}api/v1/locations/autocomplete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query }),
   }).then(res => {
+    // Sunucu yanıtının başarılı olup olmadığını kontrol et (HTTP durum kodu 200-299 arası mı?)
     if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+      // Başarılı değilse, hata detaylarını daha iyi görmek için yanıtı metin olarak oku
+      return res.text().then(text => {
+        // Hata mesajına sunucudan gelen yanıtın ilk 500 karakterini ekle
+        console.error("❌ getArrivalAutocomplete HTTP hatası:", res.status, "Yanıt:", text.slice(0, 500));
+        throw new Error(`HTTP hatası! Durum: ${res.status}. Yanıt: ${text.slice(0, 500)}`);
+      });
     }
+    // Başarılıysa, yanıtı JSON olarak ayrıştır
     return res.json();
   }),
 
-  // Düzeltildi: Eğik çizgi eklendi
+  // getNationalities fonksiyonu: Milliyet verilerini almak için GET isteği gönderir.
+  // Bu fonksiyon, sunucudan HTML yerine JSON yanıtı almayı garanti altına almak için güncellendi.
   getNationalities: async () => {
     console.log("getNationalities API çağrılıyor...");
-    const res = await fetch(`${API_BASE_URL}api/v1/lookups/nationalities`);
-    const contentType = res.headers.get("content-type");
-    console.log("Yanıt durumu:", res.status);
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
 
-    if (!contentType || !contentType.includes("application/json")) {
-      const text = await res.text();
-      console.warn("❗ Beklenmeyen içerik tipi:", contentType);
-      console.warn("❗ Dönen içerik:", text.slice(0, 200)); // sadece ilk 200 karakteri yaz
-      throw new Error("Beklenmeyen yanıt tipi (HTML olabilir)");
-    }
+    try {
+      const res = await fetch(`${API_BASE_URL}api/v1/lookups/nationalities`, {
+        headers: {
+          'Accept': 'application/json',
+          'ngrok-skip-browser-warning' : 'true' // Sunucuya JSON içeriği tercih ettiğimizi belirtiyoruz
+        }
+      });
 
-    return res.json();
+      // Yanıtın başarılı olup olmadığını kontrol et (2xx durum kodları)
+      if (!res.ok) {
+        const errorText = await res.text(); // Hata varsa yanıt gövdesini metin olarak oku (HTML hata sayfası olabilir)
+        console.warn("❌ Hatalı yanıt durumu:", res.status);
+        console.warn("❌ Yanıt gövdesi (ilk 500 karakter):", errorText.slice(0, 500));
+        // Daha detaylı bir hata fırlat
+        throw new Error(`HTTP hatası! Durum: ${res.status}. Sunucu beklenmedik bir hata veya HTML yanıtı döndürdü.`);
+      }
+
+      const contentType = res.headers.get("content-type");
+
+      // Dönen içeriğin JSON olup olmadığını kesin olarak kontrol et
+      if (!contentType || !contentType.includes("application/json")) {
+        const unexpectedContent = await res.text(); // Beklenmedik içeriği metin olarak oku
+        console.warn("❗ Beklenmeyen içerik tipi:", contentType);
+        console.warn("❗ Dönen içerik (ilk 500 karakter):", unexpectedContent.slice(0, 500));
+        // Eğer JSON değilse, HTML olduğunu varsayıp açıkça hata fırlat
+        throw new Error(`Beklenmeyen yanıt tipi: ${contentType}. Sunucu JSON yerine HTML veya farklı bir format döndürdü.`);
+      }
+
+      // Her şey yolundaysa, yanıtı JSON olarak ayrıştır
+      return res.json();
+    } catch (error) {
+      console.error("API çağrısı sırasında bir hata oluştu:", error);
+      // Hatanın tekrar fırlatılması, çağrıyı yapan kodun hatayı yakalamasını sağlar
+      throw error; 
+    }
   },
-  // Düzeltildi: Eğik çizgi eklendi
-  getCurrencies: () => fetch(`${API_BASE_URL}api/v1/lookups/currencies`).then(res => {
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-    return res.json();
-  }),
 
-  // Düzeltildi: Eğik çizgi eklendi
-  priceSearch: (searchParams) => fetch(`${API_BASE_URL}api/v1/search/prices`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(searchParams),
-  }).then(res => {
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-    return res.json();
-  }),
-
-  // Düzeltildi: Eğik çizgi eklendi
+  // getProductInfo fonksiyonu: Ürün bilgisi almak için POST isteği gönderir.
   getProductInfo: (productId) => fetch(`${API_BASE_URL}api/v1/products/info`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ product: productId }),
   }).then(res => {
+    // Sunucu yanıtının başarılı olup olmadığını kontrol et (HTTP durum kodu 200-299 arası mı?)
     if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+      // Başarılı değilse, hata detaylarını daha iyi görmek için yanıtı metin olarak oku
+      return res.text().then(text => {
+        console.error("❌ getProductInfo HTTP hatası:", res.status, "Yanıt:", text.slice(0, 500));
+        throw new Error(`HTTP hatası! Durum: ${res.status}. Yanıt: ${text.slice(0, 500)}`);
+      });
     }
+    // Başarılıysa, yanıtı JSON olarak ayrıştır
     return res.json();
   }),
 
-  // Otel arama API'si için metot düzeltildi.
-  // GET isteği olduğu için parametreler URL'ye eklendi.
-  // Düzeltildi: Eğik çizgi eklendi
+  // searchHotels fonksiyonu: Otel aramak için GET isteği gönderir.
   searchHotels: (queryParams) => {
     const queryString = new URLSearchParams(queryParams).toString();
     return fetch(`${API_BASE_URL}api/v1/hotels/search?${queryString}`, {
       method: 'GET',
     }).then(res => {
+      // Sunucu yanıtının başarılı olup olmadığını kontrol et (HTTP durum kodu 200-299 arası mı?)
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        // Başarılı değilse, hata detaylarını daha iyi görmek için yanıtı metin olarak oku
+        return res.text().then(text => {
+          console.error("❌ searchHotels HTTP hatası:", res.status, "Yanıt:", text.slice(0, 500));
+          throw new Error(`HTTP hatası! Durum: ${res.status}. Yanıt: ${text.slice(0, 500)}`);
+        });
       }
+      // Başarılıysa, yanıtı JSON olarak ayrıştır
       return res.json();
     });
   },

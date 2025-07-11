@@ -6,31 +6,35 @@ import { MapPin, Hotel } from 'lucide-react';
 
 const SearchBar = () => {
   const navigate = useNavigate();
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [destinationQuery, setDestinationQuery] = useState("");
+  const destinationInputRef = useRef(null);
+  const roomsRef = useRef(null);
+  const nationalityInputRef = useRef(null);
 
+  const [destinationQuery, setDestinationQuery] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
-  const [nationality, setNationality] = useState('');
-  const [nationalities, setNationalities] = useState([]);
+
+  // Milliyet state'leri
+  const [nationality, setNationality] = useState(''); // Seçilen milliyetin ID'si (örn: "TR")
+  const [nationalityQuery, setNationalityQuery] = useState(''); // Arama kutusundaki metin (örn: "Türkiye")
+  const [nationalities, setNationalities] = useState([]); // Tüm milliyet listesi
+  const [filteredNationalities, setFilteredNationalities] = useState([]); // Filtrelenmiş milliyet listesi
+  const [showNationalityDropdown, setShowNationalityDropdown] = useState(false); // Dropdown'ın görünürlüğü
 
   const [rooms, setRooms] = useState([{ adults: 1, children: 0 }]);
-  const [showRoomsDropdown, setShowRoomsDropdown] = useState(false);
-  const roomsRef = useRef(null);
-  const destinationInputRef = useRef(null);
-
   const [suggestions, setSuggestions] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showRoomsDropdown, setShowRoomsDropdown] = useState(false);
 
-  // Toplam misafir sayısını hesaplama
   const totalGuests = rooms.reduce((acc, room) => {
     acc.adults += room.adults;
     acc.children += room.children;
     return acc;
   }, { adults: 0, children: 0 });
 
-  // Autocomplete API'sine istek atan fonksiyon (Debounce ile)
+  // Varış yeri önerilerini getirme fonksiyonu
   const fetchSuggestions = useCallback(async (query) => {
     if (query.length < 2) {
       setSuggestions([]);
@@ -56,13 +60,14 @@ const SearchBar = () => {
     }
   }, []);
 
-  // Nationality listesini çek
+  // Sayfa yüklendiğinde milliyet listesini bir kez getirir
   useEffect(() => {
     const fetchNationalities = async () => {
       try {
         const data = await api.getNationalities();
         if (data && Array.isArray(data.items)) {
           setNationalities(data.items);
+          setFilteredNationalities(data.items);
         }
       } catch (error) {
         console.error("Milliyetler alınamadı:", error);
@@ -71,58 +76,66 @@ const SearchBar = () => {
     fetchNationalities();
   }, []);
 
-  // `destinationQuery` değiştiğinde debounce ile öneri çek
+  // Varış yeri arama sorgusunda gecikmeli arama
   useEffect(() => {
     const handler = setTimeout(() => {
       fetchSuggestions(destinationQuery);
-    }, 500); // 500ms debounce
-    return () => {
-      clearTimeout(handler);
-    };
+    }, 500);
+    return () => clearTimeout(handler);
   }, [destinationQuery, fetchSuggestions]);
 
-  // Destination input değeri değiştiğinde çalışacak
+  // Dış tıklamaları dinler ve dropdown'ları kapatır
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (roomsRef.current && !roomsRef.current.contains(event.target)) {
+        setShowRoomsDropdown(false);
+      }
+      if (destinationInputRef.current && !destinationInputRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+      if (nationalityInputRef.current && !nationalityInputRef.current.contains(event.target)) {
+        setShowNationalityDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Fonksiyonlar
   const handleDestinationQueryChange = (e) => {
     const value = e.target.value;
     setDestinationQuery(value);
-    // Eğer input boşaltılırsa veya kullanıcı yeni bir şey yazmaya başlarsa seçili lokasyonu sıfırla
     if (selectedLocation && selectedLocation.name !== value) {
       setSelectedLocation(null);
     }
-    setShowSuggestions(true); // Inputa yazmaya başlayınca önerileri göster
+    setShowSuggestions(true);
   };
 
-  // Öneriye tıklandığında
   const handleSuggestionClick = (suggestion) => {
     const name = suggestion.hotel ? suggestion.hotel.name : suggestion.city.name;
-    // API'den gelen id ve type'ı kaydediyoruz
     const id = suggestion.hotel ? suggestion.hotel.id : suggestion.city.id;
-    const type = suggestion.type; // type: 1 for city, 2 for hotel
+    const type = suggestion.type;
 
-    setDestinationQuery(name); // Input'a tam adı yaz
-    setSelectedLocation({ id, type, name }); // Seçilen lokasyonun tüm bilgilerini kaydet
-    setSuggestions([]); // Önerileri temizle
-    setShowSuggestions(false); // Öneriler listesini gizle
+    setDestinationQuery(name);
+    setSelectedLocation({ id, type, name });
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   const handleSearch = () => {
-    // Arama yapmak için `selectedLocation` kullanılıyor
     if (!selectedLocation) {
       alert("Lütfen bir destinasyon seçiniz.");
       return;
     }
 
     const params = new URLSearchParams();
-    params.set("destinationId", selectedLocation.id); // Seçilen lokasyonun ID'si
-    params.set("destinationType", selectedLocation.type); // Seçilen lokasyonun tipi
-    params.set("destinationName", selectedLocation.name); // Seçilen lokasyonun adı
-
-    // Tarihlerin boş olup olmadığını kontrol edin
+    params.set("destinationId", selectedLocation.id);
+    params.set("destinationType", selectedLocation.type);
+    params.set("destinationName", selectedLocation.name);
     if (checkIn) params.set("checkin", checkIn);
     if (checkOut) params.set("checkout", checkOut);
     if (nationality) params.set("nationality", nationality);
-
-    params.set("rooms", JSON.stringify(rooms)); // rooms array'ini JSON string'ine çevirerek gönder
+    params.set("rooms", JSON.stringify(rooms));
 
     navigate(`/search-results?${params.toString()}`);
   };
@@ -144,92 +157,62 @@ const SearchBar = () => {
     }
   };
 
-  const handleDestinationChange = async (e) => {
+  // Milliyet arama kutusu değiştiğinde
+  const handleNationalityInputChange = (e) => {
     const value = e.target.value;
-    setDestination(value);
+    setNationalityQuery(value);
+    setShowNationalityDropdown(true);
 
-    if (value.length < 2) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
+    if (value.trim() === "") {
+      setFilteredNationalities(nationalities);
+    } else {
+      const filtered = nationalities.filter(nat =>
+        nat.name.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredNationalities(filtered);
     }
 
-    try {
-      const response = await axiosClient.get("/api/v1/locations/autocomplete", {
-        query: value,
-      });
-
-      // Backend'den gelen öneri listesi response.data.suggestions olarak varsayılmıştır
-      setSuggestions(response.data.suggestions || []);
-      setShowSuggestions(true);
-    } catch (error) {
-      console.error("Autocomplete hatası:", error);
-      setSuggestions([]);
-      setShowSuggestions(false);
+    // Arama kutusundaki değer değiştiğinde seçimi sıfırla
+    if (nationality) {
+      const selectedNat = nationalities.find(n => n.id === nationality);
+      if (selectedNat && selectedNat.name !== value) {
+        setNationality('');
+      }
     }
   };
 
-  useEffect(() => {
-    const fetchFilterOptions = async () => {
-      try {
-        // Örnek olarak boş query ile çağırılıyor. Backend buna göre minPrice, maxPrice vs. dönüyorsa ayarla.
-        const response = await axiosClient.post("/api/v1/locations/autocomplete", {
-          query: "a",
-        });
-
-        setFilterOptions(response.data);
-
-        if (response.data.minPrice) setMinPrice(response.data.minPrice);
-        if (response.data.maxPrice) setMaxPrice(response.data.maxPrice);
-      } catch (error) {
-        console.error("Filtre verisi alınamadı:", error);
-      }
-    };
-
-    fetchFilterOptions();
-  }, []);
-
-  // Dropdown'lar ve autocomplete için dışarı tıklama olayını yöneten useEffect
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (roomsRef.current && !roomsRef.current.contains(event.target)) {
-        setShowRoomsDropdown(false);
-      }
-      if (destinationInputRef.current && !destinationInputRef.current.contains(event.target)) {
-        setShowSuggestions(false); // Autocomplete önerileri için dışarı tıklama
-      }
-      if (destinationRef.current && !destinationRef.current.contains(event.target)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  // Milliyet listeden seçildiğinde
+  const handleNationalitySelect = (nat) => {
+    setNationality(nat.id);
+    setNationalityQuery(nat.name);
+    setShowNationalityDropdown(false);
+  };
 
   return (
-    <div className="w-full max-w-7xl mx-auto bg-[#fef9ff] border border-[#d4c1ec] shadow rounded-2xl p-6 flex flex-wrap gap-4 items-end relative z-0">
+    <div className="w-full max-w-[1100px] mx-auto bg-[#fef9ff] border border-[#d4c1ec] shadow rounded-2xl p-6 flex flex-col lg:flex-row lg:flex-wrap gap-4 items-end relative z-0">
 
-      {/* Destination Input ve Autocomplete Alanı */}
-      <div className="flex-1 min-w-[200px] relative" ref={destinationInputRef}>
+      {/* DESTINATION */}
+      <div className="flex-1 min-w-[220px] relative" ref={destinationInputRef}>
         <div className="flex items-center relative">
           <MapPin className="absolute left-3 h-5 w-5 text-gray-400" />
           <input
             type="text"
             placeholder="Nereye gidiyorsunuz?"
-            value={destinationQuery} // Input değeri için ayrı state kullanılıyor
+            value={destinationQuery}
             onChange={handleDestinationQueryChange}
             className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none placeholder-[#8986c8]"
             onFocus={() => destinationQuery.length >= 2 && setShowSuggestions(true)}
           />
         </div>
-
-        {showSuggestions && (loadingSuggestions || suggestions.length > 0) && (
+        {showSuggestions && (
           <ul className="absolute z-50 mt-2 w-full bg-white border border-[#d4c1ec] rounded-lg shadow-lg max-h-60 overflow-y-auto">
             {loadingSuggestions && <li className="px-4 py-2 text-gray-500">Yükleniyor...</li>}
-            {!loadingSuggestions && suggestions.length === 0 && destinationQuery.length >= 2 && <li className="px-4 py-2 text-gray-500">Sonuç bulunamadı.</li>}
-            {!loadingSuggestions && suggestions.map((s, index) => (
+            {!loadingSuggestions && suggestions.length === 0 && (
+              <li className="px-4 py-2 text-gray-500">Sonuç bulunamadı.</li>
+            )}
+            {suggestions.map((s, index) => (
               <li
-                key={`${s.type}-${s.hotel?.id || s.city?.id}-${index}`} // Benzersiz key için daha kapsamlı bir yapı
+                key={`${s.type}-${s.hotel?.id || s.city?.id}-${index}`}
                 className="px-4 py-3 cursor-pointer hover:bg-[#f2dfd7] text-[#535691] flex items-center"
                 onClick={() => handleSuggestionClick(s)}
               >
@@ -246,33 +229,56 @@ const SearchBar = () => {
         )}
       </div>
 
+      {/* DATES */}
       <input
         type="date"
         value={checkIn}
         onChange={(e) => setCheckIn(e.target.value)}
-        className="flex-1 px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
+        className="flex-1 min-w-[220px] px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
       />
-
       <input
         type="date"
         value={checkOut}
         onChange={(e) => setCheckOut(e.target.value)}
-        className="flex-1 px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
+        className="flex-1 min-w-[220px] px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
       />
 
-      <div className="flex-1 min-w-[200px] relative">
-        <select
-          value={nationality}
-          onChange={(e) => setNationality(e.target.value)}
-          className="w-full px-4 py-3 rounded-lg border border-[#d4c1ec] focus:outline-none focus:ring-2 focus:ring-[#adadf6] bg-white text-[#8986c8]"
-        >
-          <option value="">Milliyet Seçiniz</option>
-          {nationalities.map((nat) => (
-            <option key={nat.id} value={nat.id}>{nat.name}</option>
-          ))}
-        </select>
+      {/* NATIONALITY */}
+      <div className="flex-1 min-w-[220px] relative" ref={nationalityInputRef}>
+        <div className="flex items-center relative">
+          <span className="absolute left-3 h-5 w-5 text-gray-400">🌐</span>
+          <input
+            type="text"
+            placeholder="Milliyet Seçiniz"
+            value={nationalityQuery}
+            onChange={handleNationalityInputChange}
+            onFocus={() => {
+              setShowNationalityDropdown(true);
+            }}
+            className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#d4c1ec] focus:outline-none focus:ring-2 focus:ring-[#adadf6] bg-white text-[#8986c8]"
+          />
+        </div>
+
+        {showNationalityDropdown && (
+          <ul className="absolute z-50 mt-2 w-full bg-white border border-[#d4c1ec] rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {filteredNationalities.length === 0 ? (
+              <li className="px-4 py-2 text-gray-500">Sonuç bulunamadı.</li>
+            ) : (
+              filteredNationalities.map((nat) => (
+                <li
+                  key={nat.id}
+                  className="px-4 py-3 cursor-pointer hover:bg-[#f2dfd7] text-[#535691]"
+                  onClick={() => handleNationalitySelect(nat)}
+                >
+                  {nat.name}
+                </li>
+              ))
+            )}
+          </ul>
+        )}
       </div>
 
+      {/* ROOM SELECTION */}
       <div className="relative w-full md:w-64 z-40" ref={roomsRef}>
         <button
           onClick={() => setShowRoomsDropdown(!showRoomsDropdown)}
@@ -280,7 +286,6 @@ const SearchBar = () => {
         >
           {rooms.length} Oda, {totalGuests.adults} Yetişkin, {totalGuests.children} Çocuk
         </button>
-
         {showRoomsDropdown && (
           <div className="absolute z-50 mt-2 bg-white border border-[#d4c1ec] rounded-lg shadow p-4 w-80 max-h-[400px] overflow-y-auto">
             {rooms.map((room, idx) => (
@@ -303,9 +308,7 @@ const SearchBar = () => {
                   </div>
                 </div>
                 {rooms.length > 1 && (
-                  <button onClick={() => removeRoom(idx)} className="text-red-500 text-sm mt-1">
-                    Odayı Sil
-                  </button>
+                  <button onClick={() => removeRoom(idx)} className="text-red-500 text-sm mt-1">Odayı Sil</button>
                 )}
               </div>
             ))}
@@ -318,7 +321,7 @@ const SearchBar = () => {
       {/* SEARCH BUTTON */}
       <button
         onClick={handleSearch}
-        className="flex items-center gap-2 bg-[#adadf6] hover:bg-[#8986c8] text-white px-6 py-3 rounded-full font-semibold shadow-sm hover:shadow-md transition"
+        className="flex items-center gap-2 bg-[#adadf6] hover:bg-[#8986c8] text-white px-6 py-3 rounded-full font-semibold shadow-sm hover:shadow-md transition min-w-[200px]"
       >
         <IoIosSearch className="text-lg" />
         Ara

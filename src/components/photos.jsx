@@ -23,7 +23,7 @@ const hotels = [
     image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcScunobpQHwE5wDwB36iZSweo30b5zbC01uPQ&s',
   },
   {
-    name: 'Disneyland ',
+    name: 'Disneyland',
     image: 'https://cf.bstatic.com/xdata/images/hotel/max1024x768/571810091.jpg?k=d5c668f695a04853b9b681f6310711cc8b817c5c074e1ec94cdad9e6c3a8420c&o=&hp=1',
   },
 ];
@@ -31,7 +31,10 @@ const hotels = [
 const Photos = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h2 className="text-3xl font-bold text-[#8986c8] mb-8 text-center">POPÜLER TATİL TEMALARI</h2>
+      <h2 className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-[#8986c8] via-[#adadf6] to-[#d4c1ec] drop-shadow-md mb-10">
+        Popüler Tatil Temaları
+      </h2>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {hotels.map((hotel, idx) => (
           <PhotoCards key={idx} hotel={hotel} />

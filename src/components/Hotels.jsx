@@ -49,24 +49,33 @@ const Hotels = () => {
   };
 
   return (
-    <div className="relative max-w-7xl mx-auto px-4 py-10">
-      <h2 className="text-3xl font-bold text-[#535691] mb-6">Popüler Oteller</h2>
+    <div id="hotels" className="relative max-w-7xl mx-auto px-4 py-8">
+      {/* Başlık */}
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-[#535691] tracking-tight">
+          Popüler Oteller
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Sizin için seçtiğimiz en popüler otelleri keşfedin.
+        </p>
+      </div>
 
       {/* Oklar */}
       <button
         onClick={() => scroll(-300)}
-        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white text-[#535691] p-2 rounded-full shadow"
+        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white text-[#535691] p-2 rounded-full shadow hidden md:flex"
       >
         <MdArrowBackIos />
       </button>
 
       <button
         onClick={() => scroll(300)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white text-[#535691] p-2 rounded-full shadow"
+        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white text-[#535691] p-2 rounded-full shadow hidden md:flex"
       >
         <MdArrowForwardIos />
       </button>
 
+      {/* Otel Kartları */}
       <div
         ref={scrollRef}
         className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide"
@@ -79,4 +88,4 @@ const Hotels = () => {
   );
 };
 
-export default Hotels;  
+export default Hotels;
