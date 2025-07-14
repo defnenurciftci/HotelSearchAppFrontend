@@ -2,9 +2,9 @@ import React from 'react';
 import SearchBar from './SearchBar';
 import { FiChevronDown } from 'react-icons/fi';
 
-const Hero = () => {
+const Hero = ({ onSearch, nationalities, currencies }) => {
   return (
-    <div className="relative w-full h-[450px] md:h-[600px] overflow-hidden">
+    <div className="relative w-full h-[400px] md:h-[700px] overflow-hidden">
       {/* Arka plan resmi */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 ease-in-out transform hover:scale-105 brightness-[0.85]"
@@ -26,8 +26,8 @@ const Hero = () => {
           En uygun fiyatlarla en güzel oteller burada. Şimdi aramaya başla!
         </p>
 
-        <div className="w-full md:w-[600px] bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-4 transition-all hover:shadow-2xl">
-          <SearchBar />
+        <div className="w-full md:w-[1000px] bg-white/20 backdrop-blur-sm rounded-xl shadow-lg p-4 transition-all hover:shadow-2xl">
+          <SearchBar onSearch={onSearch} nationalities={nationalities} currencies={currencies} />
         </div>
 
         <button
@@ -35,14 +35,10 @@ const Hero = () => {
             const el = document.getElementById('hotels');
             if (el) el.scrollIntoView({ behavior: 'smooth' });
           }}
-          className="mt-8 text-sm sm:text-base bg-white text-[#8986c8] font-semibold px-6 py-3 rounded-full shadow-md hover:bg-[#d4c1ec] transition duration-300"
         >
-          Otelleri Keşfet
+          <FiChevronDown className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 animate-bounce text-white text-3xl" />
         </button>
       </div>
-
-      {/* Aşağı ok simgesi */}
-      <FiChevronDown className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 animate-bounce text-white text-3xl" />
     </div>
   );
 };

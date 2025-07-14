@@ -2,25 +2,25 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { IoIosSearch } from "react-icons/io";
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api'; // api.js dosyanızın yolu
-import { MapPin, Hotel, Users, Globe, Calendar, Plus, Minus, X } from 'lucide-react'; // DollarSign kaldırıldı
+import { MapPin, Hotel, Users, Calendar, Plus, Minus, X } from 'lucide-react'; // DollarSign kaldırıldı
 
 const SearchBar = () => {
   const navigate = useNavigate();
   const destinationInputRef = useRef(null);
   const roomsRef = useRef(null);
-  const nationalityInputRef = useRef(null);
+  // nationalityInputRef kaldırıldı
 
   const [destinationQuery, setDestinationQuery] = useState("");
   const [selectedLocation, setSelectedLocation] = useState(null); // { id: ..., type: ..., name: ... }
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
 
-  // Milliyet state'leri
-  const [nationality, setNationality] = useState(''); // Seçilen milliyetin ID'si (örn: "TR")
-  const [nationalityQuery, setNationalityQuery] = useState(''); // Arama kutusundaki metin (örn: "Türkiye")
-  const [nationalities, setNationalities] = useState([]); // Tüm milliyet listesi
-  const [filteredNationalities, setFilteredNationalities] = useState([]); // Filtrelenmiş milliyet listesi
-  const [showNationalityDropdown, setShowNationalityDropdown] = useState(false); // Dropdown'ın görünürlüğü
+  // Milliyet state'leri kaldırıldı
+  // const [nationality, setNationality] = useState('');
+  // const [nationalityQuery, setNationalityQuery] = useState('');
+  // const [nationalities, setNationalities] = useState([]);
+  // const [filteredNationalities, setFilteredNationalities] = useState([]);
+  // const [showNationalityDropdown, setShowNationalityDropdown] = useState(false);
 
   // Oda ve Misafir state'leri
   const [rooms, setRooms] = useState([{ adult: 2, childAges: [] }]);
@@ -62,37 +62,11 @@ const SearchBar = () => {
     }
   }, []);
 
-  // Sayfa yüklendiğinde milliyet listesini bir kez getirir (kur listesi kaldırıldı)
+  // Sayfa yüklendiğinde artık sadece milliyet listesi getiriliyor (kur listesi kaldırıldı)
   useEffect(() => {
-    const fetchData = async () => {
-      // Milliyetleri getir
-      try {
-        // api.js'deki getNationalities fonksiyonunu kullan
-        const nationalitiesData = await api.getNationalities();
-
-        // API'den gelen verinin yapısına göre nationalities state'ini güncelle
-        // Hata mesajınızdan anlaşıldığı üzere, 'nationalitiesData' doğrudan bir dizi objeler içeriyor.
-        if (nationalitiesData && Array.isArray(nationalitiesData)) {
-          setNationalities(nationalitiesData);
-          setFilteredNationalities(nationalitiesData);
-          // Varsayılan milliyeti ilk gelen olarak ayarla veya "TR" bul
-          const defaultNationality = nationalitiesData.find(n => n.id === 'TR') || nationalitiesData[0];
-          if (defaultNationality) {
-            setNationality(defaultNationality.id);
-            setNationalityQuery(defaultNationality.name);
-          }
-        } else {
-          console.warn("API'den milliyet verisi gelmedi veya formatı beklenmedik:", nationalitiesData);
-          setNationalities([]); // Hata durumunda boş dizi ayarla
-        }
-      } catch (error) {
-        console.error("Milliyetler alınamadı:", error);
-        setNationalities([]); // Hata durumunda boş dizi ayarla
-      }
-
-      // Kurlar kaldırıldı
-    };
-    fetchData();
+    // Milliyetleri getirme kısmı buradan kaldırıldı, Navbar'a taşınacak
+    // Bu useEffect artık boş kalabilir veya başka bir işlem yapmıyorsa kaldırılabilir.
+    // Şimdilik boş bırakıyorum.
   }, []); // Boş bağımlılık dizisi ile sadece bir kez çalıştır
 
   // Varış yeri arama sorgusunda gecikmeli arama (debounce)
@@ -112,9 +86,7 @@ const SearchBar = () => {
       if (destinationInputRef.current && !destinationInputRef.current.contains(event.target)) {
         setShowSuggestions(false);
       }
-      if (nationalityInputRef.current && !nationalityInputRef.current.contains(event.target)) {
-        setShowNationalityDropdown(false);
-      }
+      // nationalityInputRef kontrolü kaldırıldı
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -158,8 +130,7 @@ const SearchBar = () => {
       },
       checkin: checkIn || undefined, // Boş dize yerine undefined/null gönder
       checkout: checkOut || undefined,
-      nationalityId: nationality || undefined,
-      // currencyCode kaldırıldı
+      // nationalityId kaldırıldı
       roomCriteria: rooms.map(room => ({
         adult: room.adult,
         childAges: room.childAges
@@ -195,39 +166,12 @@ const SearchBar = () => {
     setRooms(newRooms);
   };
 
-  // Milliyet arama kutusu değiştiğinde
-  const handleNationalityInputChange = (e) => {
-    const value = e.target.value;
-    setNationalityQuery(value);
-    setShowNationalityDropdown(true);
-
-    if (value.trim() === "") {
-      setFilteredNationalities(nationalities); // Arama kutusu boşsa tüm milliyetleri göster
-    } else {
-      const filtered = nationalities.filter(nat =>
-        nat.name.toLowerCase().includes(value.toLowerCase())
-      );
-      setFilteredNationalities(filtered); // Arama sorgusuna göre filtrele
-    }
-
-    // Arama kutusundaki değer değiştiğinde seçimi sıfırla
-    if (nationality) {
-      const selectedNat = nationalities.find(n => n.id === nationality);
-      if (selectedNat && selectedNat.name !== value) {
-        setNationality('');
-      }
-    }
-  };
-
-  // Milliyet listeden seçildiğinde
-  const handleNationalitySelect = (nat) => {
-    setNationality(nat.id);
-    setNationalityQuery(nat.name);
-    setShowNationalityDropdown(false);
-  };
+  // Milliyet arama kutusu değiştiğinde fonksiyonları kaldırıldı
+  // const handleNationalityInputChange = (e) => { ... };
+  // const handleNationalitySelect = (nat) => { ... };
 
   return (
-    <div className="w-full max-w-[1100px] mx-auto bg-[#fef9ff] border border-[#d4c1ec] shadow rounded-2xl p-6 flex flex-col lg:flex-row lg:flex-wrap gap-4 items-end relative z-0">
+    <div className="w-full max-w-[1100px] mx-auto bg-white/20 backdrop-blur-md border border-[#d4c1ec] shadow rounded-2xl p-6 flex flex-row flex-wrap gap-4 items-end relative z-0">
 
       {/* DESTINATION (Varış Yeri) */}
       <div className="flex-1 min-w-[220px] relative" ref={destinationInputRef}>
@@ -238,7 +182,7 @@ const SearchBar = () => {
             placeholder="Nereye gidiyorsunuz?"
             value={destinationQuery}
             onChange={handleDestinationQueryChange}
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none placeholder-[#8986c8]"
+            className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none placeholder-white"
             onFocus={() => destinationQuery.length >= 2 && setShowSuggestions(true)}
           />
         </div>
@@ -274,7 +218,7 @@ const SearchBar = () => {
           type="date"
           value={checkIn}
           onChange={(e) => setCheckIn(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8] custom-date-input"
+          className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-white custom-date-input"
           min={new Date().toISOString().split('T')[0]} // Bugün ve sonrası
         />
       </div>
@@ -286,51 +230,11 @@ const SearchBar = () => {
           type="date"
           value={checkOut}
           onChange={(e) => setCheckOut(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8] custom-date-input"
+          className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-white custom-date-input"
           min={checkIn} // Check-in sonrası
         />
       </div>
 
-      {/* NATIONALITY (Milliyet) */}
-      <div className="flex-1 min-w-[220px] relative" ref={nationalityInputRef}>
-        <div className="flex items-center relative">
-          <Globe className="absolute left-3 h-5 w-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Milliyet Seçiniz"
-            value={nationalityQuery}
-            onChange={handleNationalityInputChange}
-            onFocus={() => {
-              setShowNationalityDropdown(true);
-              // Eğer arama kutusu boşsa, tüm milliyetleri göster
-              if (nationalityQuery === "") {
-                setFilteredNationalities(nationalities);
-              }
-            }}
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#d4c1ec] focus:outline-none focus:ring-2 focus:ring-[#adadf6] bg-white text-[#8986c8]"
-          />
-        </div>
-
-        {showNationalityDropdown && (
-          <ul className="absolute z-50 mt-2 w-full bg-white border border-[#d4c1ec] rounded-lg shadow-lg max-h-60 overflow-y-auto">
-            {filteredNationalities.length === 0 ? (
-              <li className="px-4 py-2 text-gray-500">Sonuç bulunamadı.</li>
-            ) : (
-              filteredNationalities.map((nat) => (
-                <li
-                  key={nat.id}
-                  className="px-4 py-3 cursor-pointer hover:bg-[#f2dfd7] text-[#535691]"
-                  onClick={() => handleNationalitySelect(nat)}
-                >
-                  {nat.name}
-                </li>
-              ))
-            )}
-          </ul>
-        )}
-      </div>
-
-      {/* CURRENCY (Para Birimi) - Kaldırıldı */}
       {/* Bu kısım artık burada değil */}
 
       {/* ROOM SELECTION (Oda Seçimi) */}
@@ -338,7 +242,7 @@ const SearchBar = () => {
         <button
           type="button"
           onClick={() => setShowRoomsDropdown(!showRoomsDropdown)}
-          className="w-full border border-[#d4c1ec] px-4 py-3 rounded-lg bg-white text-left text-[#8986c8] hover:bg-[#f2dfd7] flex items-center"
+          className="w-full border border-[#d4c1ec] px-4 py-3 rounded-lg bg-white/20 text-left text-white hover:bg-[#f2dfd7] flex items-center"
         >
           <Users className="h-5 w-5 text-gray-400 mr-3" />
           <span>{totalGuests} Misafir, {rooms.length} Oda</span>
@@ -399,7 +303,7 @@ const SearchBar = () => {
         className="flex items-center gap-2 bg-[#adadf6] hover:bg-[#8986c8] text-white px-6 py-3 rounded-full font-semibold shadow-sm hover:shadow-md transition min-w-[200px]"
       >
         <IoIosSearch className="text-lg" />
-        Ara
+        Otelleri Keşfet
       </button>
     </div>
   );
