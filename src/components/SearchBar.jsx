@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { IoIosSearch } from "react-icons/io";
 import { useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
-import { MapPin, Hotel } from 'lucide-react';
+import { api } from '../services/api'; // api.js dosyanızın yolu
+import { MapPin, Hotel, Users, Globe, Calendar, Plus, Minus, X } from 'lucide-react'; // DollarSign kaldırıldı
 
 const SearchBar = () => {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ const SearchBar = () => {
   const nationalityInputRef = useRef(null);
 
   const [destinationQuery, setDestinationQuery] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null); // { id: ..., type: ..., name: ... }
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
 
@@ -22,18 +22,19 @@ const SearchBar = () => {
   const [filteredNationalities, setFilteredNationalities] = useState([]); // Filtrelenmiş milliyet listesi
   const [showNationalityDropdown, setShowNationalityDropdown] = useState(false); // Dropdown'ın görünürlüğü
 
-  const [rooms, setRooms] = useState([{ adults: 1, children: 0 }]);
+  // Oda ve Misafir state'leri
+  const [rooms, setRooms] = useState([{ adult: 2, childAges: [] }]);
+  const [showRoomsDropdown, setShowRoomsDropdown] = useState(false);
+
+  // Kur state'leri kaldırıldı
+
   const [suggestions, setSuggestions] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [showRoomsDropdown, setShowRoomsDropdown] = useState(false);
 
 
-  const totalGuests = rooms.reduce((acc, room) => {
-    acc.adults += room.adults;
-    acc.children += room.children;
-    return acc;
-  }, { adults: 0, children: 0 });
+  // Toplam misafir sayısını hesaplar
+  const totalGuests = rooms.reduce((acc, room) => acc + room.adult + room.childAges.length, 0);
 
   // Varış yeri önerilerini getirme fonksiyonu
   const fetchSuggestions = useCallback(async (query) => {
@@ -53,7 +54,7 @@ const SearchBar = () => {
       }
       setShowSuggestions(true);
     } catch (error) {
-      console.error("Autocomplete error 57:", error);
+      console.error("Autocomplete önerileri alınamadı:", error);
       setSuggestions([]);
       setShowSuggestions(false);
     } finally {
@@ -61,25 +62,40 @@ const SearchBar = () => {
     }
   }, []);
 
-  // Sayfa yüklendiğinde milliyet listesini bir kez getirir
+  // Sayfa yüklendiğinde milliyet listesini bir kez getirir (kur listesi kaldırıldı)
   useEffect(() => {
-    const fetchNationalities = async () => {
+    const fetchData = async () => {
+      // Milliyetleri getir
       try {
-        console.log("data is ok")
-        const data = await api.getNationalities();
-        if (data && Array.isArray(data.items)) {
-          console.log("first if is ok")
-          setNationalities(data.items);
-          setFilteredNationalities(data.items);
+        // api.js'deki getNationalities fonksiyonunu kullan
+        const nationalitiesData = await api.getNationalities();
+
+        // API'den gelen verinin yapısına göre nationalities state'ini güncelle
+        // Hata mesajınızdan anlaşıldığı üzere, 'nationalitiesData' doğrudan bir dizi objeler içeriyor.
+        if (nationalitiesData && Array.isArray(nationalitiesData)) {
+          setNationalities(nationalitiesData);
+          setFilteredNationalities(nationalitiesData);
+          // Varsayılan milliyeti ilk gelen olarak ayarla veya "TR" bul
+          const defaultNationality = nationalitiesData.find(n => n.id === 'TR') || nationalitiesData[0];
+          if (defaultNationality) {
+            setNationality(defaultNationality.id);
+            setNationalityQuery(defaultNationality.name);
+          }
+        } else {
+          console.warn("API'den milliyet verisi gelmedi veya formatı beklenmedik:", nationalitiesData);
+          setNationalities([]); // Hata durumunda boş dizi ayarla
         }
       } catch (error) {
         console.error("Milliyetler alınamadı:", error);
+        setNationalities([]); // Hata durumunda boş dizi ayarla
       }
-    };
-    fetchNationalities();
-  }, []);
 
-  // Varış yeri arama sorgusunda gecikmeli arama
+      // Kurlar kaldırıldı
+    };
+    fetchData();
+  }, []); // Boş bağımlılık dizisi ile sadece bir kez çalıştır
+
+  // Varış yeri arama sorgusunda gecikmeli arama (debounce)
   useEffect(() => {
     const handler = setTimeout(() => {
       fetchSuggestions(destinationQuery);
@@ -87,7 +103,7 @@ const SearchBar = () => {
     return () => clearTimeout(handler);
   }, [destinationQuery, fetchSuggestions]);
 
-  // Dış tıklamaları dinler ve dropdown'ları kapatır
+  // Dış tıklamaları dinler ve tüm açılır menüleri kapatır
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (roomsRef.current && !roomsRef.current.contains(event.target)) {
@@ -104,60 +120,79 @@ const SearchBar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fonksiyonlar
+  // Varış yeri arama kutusundaki değişiklikleri yönetir
   const handleDestinationQueryChange = (e) => {
     const value = e.target.value;
     setDestinationQuery(value);
+    // Eğer seçili bir konum varsa ve arama kutusu değeri değişirse seçimi sıfırla
     if (selectedLocation && selectedLocation.name !== value) {
       setSelectedLocation(null);
     }
-    setShowSuggestions(true);
+    setShowSuggestions(true); // Yazmaya başlandığında önerileri göster
   };
 
+  // Otomatik tamamlama önerisine tıklandığında
   const handleSuggestionClick = (suggestion) => {
     const name = suggestion.hotel ? suggestion.hotel.name : suggestion.city.name;
     const id = suggestion.hotel ? suggestion.hotel.id : suggestion.city.id;
-    const type = suggestion.type;
+    const type = suggestion.type; // API'den gelen tip (örn: 1 şehir, 2 otel)
 
     setDestinationQuery(name);
     setSelectedLocation({ id, type, name });
-    setSuggestions([]);
-    setShowSuggestions(false);
+    setSuggestions([]); // Önerileri temizle
+    setShowSuggestions(false); // Açılır menüyü kapat
   };
 
+  // Arama butonuna tıklandığında
   const handleSearch = () => {
     if (!selectedLocation) {
-      alert("Lütfen bir destinasyon seçiniz.");
+      alert("Lütfen bir destinasyon seçiniz."); // Kullanıcıya uyarı ver
       return;
     }
 
-    const params = new URLSearchParams();
-    params.set("destinationId", selectedLocation.id);
-    params.set("destinationType", selectedLocation.type);
-    params.set("destinationName", selectedLocation.name);
-    if (checkIn) params.set("checkin", checkIn);
-    if (checkOut) params.set("checkout", checkOut);
-    if (nationality) params.set("nationality", nationality);
-    params.set("rooms", JSON.stringify(rooms));
+    // `api.searchByLocation` için istek gövdesini oluştur
+    const searchRequestPayload = {
+      destination: {
+        id: selectedLocation.id,
+        type: selectedLocation.type, // 1 for city, 2 for hotel (API'nin beklediği format)
+      },
+      checkin: checkIn || undefined, // Boş dize yerine undefined/null gönder
+      checkout: checkOut || undefined,
+      nationalityId: nationality || undefined,
+      // currencyCode kaldırıldı
+      roomCriteria: rooms.map(room => ({
+        adult: room.adult,
+        childAges: room.childAges
+      }))
+    };
 
-    navigate(`/search-results?${params.toString()}`);
+    // Arama sonuçları sayfasına git ve arama payload'ını `state` olarak ilet.
+    // `search-results` sayfası bu `state`'i kullanarak API çağrısını yapacaktır.
+    navigate('/search-results', { state: { searchParams: searchRequestPayload } });
   };
 
-  const handleRoomChange = (roomIndex, type, delta) => {
-    setRooms(prev =>
-      prev.map((room, idx) =>
-        idx === roomIndex
-          ? { ...room, [type]: Math.max(0, room[type] + delta) }
-          : room
-      )
-    );
+  // Oda ve Misafir Yönetimi Fonksiyonları
+  const handleAddRoom = () => setRooms([...rooms, { adult: 1, children: 0, childAges: [] }]);
+  const handleRemoveRoom = (index) => { if (rooms.length > 1) setRooms(rooms.filter((_, i) => i !== index)); };
+  const handleRoomChange = (index, field, value) => {
+    const newRooms = [...rooms];
+    newRooms[index][field] = Math.max(0, value); // Değerin 0'dan küçük olmamasını sağla
+    setRooms(newRooms);
   };
-
-  const addRoom = () => setRooms([...rooms, { adults: 1, children: 0 }]);
-  const removeRoom = (index) => {
-    if (rooms.length > 1) {
-      setRooms(prev => prev.filter((_, idx) => idx !== index));
-    }
+  const handleChildAgeChange = (roomIndex, childIndex, age) => {
+    const newRooms = [...rooms];
+    newRooms[roomIndex].childAges[childIndex] = parseInt(age); // Yaşı sayıya dönüştür
+    setRooms(newRooms);
+  };
+  const handleAddChild = (roomIndex) => {
+    const newRooms = [...rooms];
+    newRooms[roomIndex].childAges.push(0); // Yeni çocuğu varsayılan yaş 0 ile ekle
+    setRooms(newRooms);
+  };
+  const handleRemoveChild = (roomIndex, childIndex) => {
+    const newRooms = [...rooms];
+    newRooms[roomIndex].childAges.splice(childIndex, 1); // Belirli çocuğu kaldır
+    setRooms(newRooms);
   };
 
   // Milliyet arama kutusu değiştiğinde
@@ -167,12 +202,12 @@ const SearchBar = () => {
     setShowNationalityDropdown(true);
 
     if (value.trim() === "") {
-      setFilteredNationalities(nationalities);
+      setFilteredNationalities(nationalities); // Arama kutusu boşsa tüm milliyetleri göster
     } else {
       const filtered = nationalities.filter(nat =>
         nat.name.toLowerCase().includes(value.toLowerCase())
       );
-      setFilteredNationalities(filtered);
+      setFilteredNationalities(filtered); // Arama sorgusuna göre filtrele
     }
 
     // Arama kutusundaki değer değiştiğinde seçimi sıfırla
@@ -194,7 +229,7 @@ const SearchBar = () => {
   return (
     <div className="w-full max-w-[1100px] mx-auto bg-[#fef9ff] border border-[#d4c1ec] shadow rounded-2xl p-6 flex flex-col lg:flex-row lg:flex-wrap gap-4 items-end relative z-0">
 
-      {/* DESTINATION */}
+      {/* DESTINATION (Varış Yeri) */}
       <div className="flex-1 min-w-[220px] relative" ref={destinationInputRef}>
         <div className="flex items-center relative">
           <MapPin className="absolute left-3 h-5 w-5 text-gray-400" />
@@ -232,24 +267,34 @@ const SearchBar = () => {
         )}
       </div>
 
-      {/* DATES */}
-      <input
-        type="date"
-        value={checkIn}
-        onChange={(e) => setCheckIn(e.target.value)}
-        className="flex-1 min-w-[220px] px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
-      />
-      <input
-        type="date"
-        value={checkOut}
-        onChange={(e) => setCheckOut(e.target.value)}
-        className="flex-1 min-w-[220px] px-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8]"
-      />
+      {/* CHECK-IN DATE (Giriş Tarihi) */}
+      <div className="flex-1 min-w-[220px] relative">
+        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <input
+          type="date"
+          value={checkIn}
+          onChange={(e) => setCheckIn(e.target.value)}
+          className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8] custom-date-input"
+          min={new Date().toISOString().split('T')[0]} // Bugün ve sonrası
+        />
+      </div>
 
-      {/* NATIONALITY */}
+      {/* CHECK-OUT DATE (Çıkış Tarihi) */}
+      <div className="flex-1 min-w-[220px] relative">
+        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <input
+          type="date"
+          value={checkOut}
+          onChange={(e) => setCheckOut(e.target.value)}
+          className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#d4c1ec] focus:ring-2 focus:ring-[#adadf6] outline-none text-[#8986c8] custom-date-input"
+          min={checkIn} // Check-in sonrası
+        />
+      </div>
+
+      {/* NATIONALITY (Milliyet) */}
       <div className="flex-1 min-w-[220px] relative" ref={nationalityInputRef}>
         <div className="flex items-center relative">
-          <span className="absolute left-3 h-5 w-5 text-gray-400">🌐</span>
+          <Globe className="absolute left-3 h-5 w-5 text-gray-400" />
           <input
             type="text"
             placeholder="Milliyet Seçiniz"
@@ -257,6 +302,10 @@ const SearchBar = () => {
             onChange={handleNationalityInputChange}
             onFocus={() => {
               setShowNationalityDropdown(true);
+              // Eğer arama kutusu boşsa, tüm milliyetleri göster
+              if (nationalityQuery === "") {
+                setFilteredNationalities(nationalities);
+              }
             }}
             className="w-full pl-10 pr-4 py-3 rounded-lg border border-[#d4c1ec] focus:outline-none focus:ring-2 focus:ring-[#adadf6] bg-white text-[#8986c8]"
           />
@@ -281,47 +330,70 @@ const SearchBar = () => {
         )}
       </div>
 
-      {/* ROOM SELECTION */}
+      {/* CURRENCY (Para Birimi) - Kaldırıldı */}
+      {/* Bu kısım artık burada değil */}
+
+      {/* ROOM SELECTION (Oda Seçimi) */}
       <div className="relative w-full md:w-64 z-40" ref={roomsRef}>
         <button
+          type="button"
           onClick={() => setShowRoomsDropdown(!showRoomsDropdown)}
-          className="w-full border border-[#d4c1ec] px-4 py-3 rounded-lg bg-white text-left text-[#8986c8] hover:bg-[#f2dfd7]"
+          className="w-full border border-[#d4c1ec] px-4 py-3 rounded-lg bg-white text-left text-[#8986c8] hover:bg-[#f2dfd7] flex items-center"
         >
-          {rooms.length} Oda, {totalGuests.adults} Yetişkin, {totalGuests.children} Çocuk
+          <Users className="h-5 w-5 text-gray-400 mr-3" />
+          <span>{totalGuests} Misafir, {rooms.length} Oda</span>
         </button>
         {showRoomsDropdown && (
           <div className="absolute z-50 mt-2 bg-white border border-[#d4c1ec] rounded-lg shadow p-4 w-80 max-h-[400px] overflow-y-auto">
             {rooms.map((room, idx) => (
-              <div key={idx} className="mb-4 border-b pb-3">
-                <p className="font-semibold text-[#535691] mb-2">{idx + 1}. Oda</p>
+              <div key={idx} className="mb-4 border-b pb-3 last:border-b-0 last:pb-0">
+                <p className="font-semibold text-[#535691] mb-2 flex justify-between items-center">
+                  Oda {idx + 1}
+                  {rooms.length > 1 && (
+                    <button type="button" onClick={() => handleRemoveRoom(idx)} className="p-1 rounded-full hover:bg-red-100 text-red-500">
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </p>
                 <div className="flex justify-between items-center mb-2">
                   <span>Yetişkin</span>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => handleRoomChange(idx, "adults", -1)} className="px-2 py-1 border rounded">-</button>
-                    <span>{room.adults}</span>
-                    <button onClick={() => handleRoomChange(idx, "adults", 1)} className="px-2 py-1 border rounded">+</button>
+                    <button type="button" onClick={() => handleRoomChange(idx, "adult", room.adult - 1)} className="px-2 py-1 border rounded">-</button>
+                    <span>{room.adult}</span>
+                    <button type="button" onClick={() => handleRoomChange(idx, "adult", room.adult + 1)} className="px-2 py-1 border rounded">+</button>
                   </div>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span>Çocuk</span>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => handleRoomChange(idx, "children", -1)} className="px-2 py-1 border rounded">-</button>
-                    <span>{room.children}</span>
-                    <button onClick={() => handleRoomChange(idx, "children", 1)} className="px-2 py-1 border rounded">+</button>
-                  </div>
+                  <button type="button" onClick={() => handleAddChild(idx)} className="bg-blue-100 text-blue-600 rounded-full p-1"><Plus className="h-4 w-4" /></button>
                 </div>
-                {rooms.length > 1 && (
-                  <button onClick={() => removeRoom(idx)} className="text-red-500 text-sm mt-1">Odayı Sil</button>
-                )}
+                {room.childAges.map((age, childIndex) => (
+                  <div key={childIndex} className="flex justify-between items-center mt-2 pl-4">
+                    <span className="text-sm">Çocuk {childIndex + 1} Yaşı</span>
+                    <div className="flex items-center">
+                      <input
+                        type="number"
+                        min="0"
+                        max="17"
+                        value={age}
+                        onChange={(e) => handleChildAgeChange(idx, childIndex, parseInt(e.target.value))}
+                        className="w-16 p-1 border rounded-md"
+                      />
+                      <button type="button" onClick={() => handleRemoveChild(idx, childIndex)} className="ml-2 text-red-500 hover:text-red-700">
+                        <Minus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             ))}
-            <button onClick={addRoom} className="text-sm text-blue-600 hover:underline">Oda Ekle</button>
+            <button type="button" onClick={handleAddRoom} className="w-full text-blue-600 font-semibold py-2 rounded-lg hover:bg-blue-50 transition text-sm">+ Oda Ekle</button>
             <button onClick={() => setShowRoomsDropdown(false)} className="mt-3 w-full bg-[#adadf6] hover:bg-[#8986c8] text-white py-2 rounded">Tamam</button>
           </div>
         )}
       </div>
 
-      {/* SEARCH BUTTON */}
+      {/* SEARCH BUTTON (Arama Butonu) */}
       <button
         onClick={handleSearch}
         className="flex items-center gap-2 bg-[#adadf6] hover:bg-[#8986c8] text-white px-6 py-3 rounded-full font-semibold shadow-sm hover:shadow-md transition min-w-[200px]"
